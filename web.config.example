@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <connectionStrings>
-    <add connectionString="Data Source=YOUR_SQL_SERVER;Initial Catalog=YOUR_DATABASE;User Id=YOUR_USER;Password=YOUR_PASSWORD" name="ConnectionString" />
-  </connectionStrings>
+  <connectionStrings configSource="connectionStrings.local.config" />
   <system.web>
     <compilation debug="true" explicit="false" strict="false" targetFramework="4.7.2" />
     <authentication mode="Windows" />
