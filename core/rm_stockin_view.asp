@@ -1,0 +1,291 @@
+<!-- #include file="header.asp" -->
+<%
+searchitem = request("searchitem")
+searchvalue = request("searchvalue")
+Searchor_date = request("Searchor_date")
+orderby = request("orderby")
+ordertype = request("ordertype")
+
+if ordertype = "" then 
+   ordertype = "desc"
+end if
+
+if request("st_createddate_from") <> "" then
+   st_createddate_from = request("st_createddate_from")
+else
+   st_createddate_from = chkdate(DateAdd("d",-90,date()))
+end if
+
+if request("st_createddate_to") <> "" then
+   st_createddate_to = request("st_createddate_to")
+else
+   st_createddate_to = chkdate(date())
+end if
+
+if request("st_status") <> "" then
+   st_status = request("st_status")
+else
+   st_status = "Open"
+end if
+
+i = 1
+sql = "SELECT st_id, st_no, st_date, st_referenceno, st_status, st_fromwarehouse, st_towarehouse, st_remark, st_createddate, st_createdby, " & _
+		"st_approveddate, st_approvedby, st_cancelleddate, st_cancelledby, st_totalqty, st_totalaAmt, st_emailsent, st_emailsentdate " & _
+		"FROM tblstockin where st_id is not null " & _
+		"and  st_date >= '" & ChkDateYYYYMMDD(st_createddate_from) & "' and st_date <= '" & ChkDateYYYYMMDD(st_createddate_to) & "' "
+
+if searchvalue <> "" then 
+   sql = sql & " and " & searchitem & " like '%" & searchvalue& "%' "
+end if
+
+if st_status <> "All" and st_status <> "" then
+   sql = sql & " and  st_status = '" & st_status & "' "
+end if
+
+if orderby <> "" then
+sql = sql & " order by " & orderby & " " & ordertype
+else
+sql = sql & " order by st_no desc"
+end if
+
+'response.write sql
+
+set rs = server.CreateObject("adodb.recordset")
+rs.ActiveConnection = strconnect
+rs.Source = sql
+rs.CursorLocation  = 3
+rs.Open
+if rs.eof then
+   norecord = "There is no record found."
+end if
+
+If Not rs.EOF Then
+
+if request("rowno") <> "" then
+	  row = cint(request("rowno"))
+else
+	  row = 50
+end if
+			
+Showed = Request("num")
+If Showed = "" Then Showed = 0
+TotalRecord = rs.RecordCount
+Remain = TotalRecord - Showed
+
+If Remain > row Then
+  LoopMax = Showed + row
+Else
+  LoopMax = Showed + Remain
+End If
+
+	If Int(TotalRecord/row) <> TotalRecord/row Then
+	  pgCount = Int(TotalRecord/row) + 1
+	Else
+	  pgCount = TotalRecord/row
+	End If
+
+	if LoopMax mod row = 0 then
+		pagestartno = LoopMax/row
+	else
+		pagestartno = pgCount
+	end if		
+end if
+
+count = count + Showed
+link = "&searchitem=" & request("searchitem") & "&searchvalue=" & request("searchvalue") & "&sortby=" & request("sortby") & "&st_status=" & request("st_status")  & "&st_createddate_from=" & st_createddate_from  & "&st_createddate_to=" & st_createddate_to 
+slink = "&searchitem=" & request("searchitem") & "&searchvalue=" & request("searchvalue") & "&sortby=" & request("sortby") & "&st_createddate_from=" & st_createddate_from  & "&st_createddate_to=" & st_createddate_to
+
+%>
+        <tr>
+          <td><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
+                <tr> 
+                  <td align="center" valign="top" bgcolor="#FFFFFF"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                      <tr> 
+                        <td class="titleblue1">&nbsp;</td>
+                      </tr>
+                      <tr> 
+                        <td class="titleblue1"><div align="left"><font color="#CC0000">View </font>Stock In</div></td>
+                      </tr>
+                    </table></td>
+                </tr>
+                <tr>
+                  <td valign="top" bgcolor="#FFFFFF">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td valign="top" bgcolor="#FFFFFF"><table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td width="66%" valign="top"><div align="left">
+                        <form name="form1" id="form1" method="post" action="rm_stockin_view.asp?type=reset">
+                          <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td nowrap="nowrap" class="titlegrey1"><strong> DO Date <br />
+                              </strong></td>
+                              <td><div align="left"><strong><font color="#000000"><strong>
+                                <input name="st_createddate_from" type="text" id="st_createddate_from" value="<%=st_createddate_from%>" size="15" />
+                                <a href="javascript:void(null)" onclick="window.dateField = document.form1.st_createddate_from;
+             calendar = window.open('date.asp',null,'WIDTH=185,HEIGHT=203,status=no,toolbar=no,menubar=no,location=no,scrollbars=no,resizable=1,top=0,right=0')"> <img src="images/calender.gif" width="20" height="19" border="0" align="absmiddle" /></a>to
+                                <input name="st_createddate_to" type="text" id="st_createddate_to" value="<%=st_createddate_to%>" size="12" />
+                                <a href="javascript:void(null)" onclick="window.dateField = document.form1.st_createddate_to;
+             calendar = window.open('date.asp',null,'WIDTH=185,HEIGHT=203,status=no,toolbar=no,menubar=no,location=no,scrollbars=no,resizable=1,top=0,right=0')"> <img src="images/calender.gif" width="20" height="19" border="0" align="absmiddle" /></a></strong></font></strong> Date must be (dd-MMM-yyyy) eg: 21-May-2015</div></td>
+                            </tr>
+                            <tr>
+                              <td width="16%" class="titlegrey1"><div align="left"> Filtered by</div></td>
+                              <td><select name="searchitem" id="searchitem">
+                                <option value="tblstockin.st_no"  <% if searchitem = "tblstockin.st_no" then response.write " selected" %>>Stock-In No</option>
+                                <option value="tblstockin.st_referenceno" <% if searchitem = "tblstockin.st_referenceno" then response.write " selected" %>>Reference No</option>
+                                <option value="tblstockin.st_fromwarehouse" <% if searchitem = "tblstockin.st_fromwarehouse" then response.write " selected" %>>from Store</option>
+                                <option value="tblstockin.st_towarehouse" <% if searchitem = "tblstockin.st_towarehouse" then response.write " selected" %>>to Store</option>
+                                <option value="tblstockin.st_remark" <% if searchitem = "tblstockin.st_remark" then response.write " selected" %>>Remark</option>
+                              </select>
+                                <input name="searchvalue" type="text" id="searchvalue" value="<%=searchvalue%>" />
+                                <select name="orderby" id="orderby">
+                                 <option value="tblstockin.st_no"  <% if orderby = "tblstockin.st_no" then response.write " selected" %>>Stock-In No</option>
+                                <option value="tblstockin.st_referenceno" <% if orderby = "tblstockin.st_referenceno" then response.write " selected" %>>Reference No</option>
+                                <option value="tblstockin.st_fromwarehouse" <% if orderby = "tblstockin.st_fromwarehouse" then response.write " selected" %>>from Store</option>
+                                <option value="tblstockin.st_towarehouse" <% if orderby = "tblstockin.st_towarehouse" then response.write " selected" %>>to Store</option>
+                                <option value="tblstockin.st_remark" <% if orderby = "tblstockin.st_remark" then response.write " selected" %>>Remark</option>
+                                </select>
+                                <select name="ordertype" id="ordertype">
+                                  <option value="asc" <% if ordertype = "asc" then response.write " selected"%>>A-Z</option>
+                                  <option value="desc" <% if ordertype = "desc" then response.write " selected"%>>Z-A</option>
+                                </select>
+                                <input type="submit" name="Submit43" value="Display" />
+                                <input name="st_status" type="hidden" id="st_status" value="<%=st_status%>" /></td>
+                            </tr>
+                          </table>
+                        </form>
+                      </div></td>
+                      <td width="18%">&nbsp;</td>
+                      <td width="16%" align="right" valign="top"><input type="button" name="Submit333" value="Create New Stock-In" onclick="document.location.href='rm_stockin_new.asp'" />
+                        <br />
+                        <font size="4"><strong><font color="#FF0000"></font></strong></font></td>
+                    </tr>
+                  </table></td>
+                </tr>
+                <tr>
+                  <td valign="top" bgcolor="#FFFFFF">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td align="right" bgcolor="#FFFFFF"><strong>Page</strong> <font color="3366ff"> <%=pagestartno%></font>of <font color="3366ff"> <%=pgCount%></font>:
+                  <%	
+	i = 0
+	For j = 1 To pgCount
+				If CInt(Showed) = ((j-1) * row) Then
+					Response.Write "<font color=#000000><b>"& j &"</b></font>"
+				Else
+					Response.Write " <a href='rm_stockin_view.asp?num=" & (j-1) * row & link & "'>"& j &"</a>"
+				End If
+			If Not j = pgCount Then Response.Write " "
+	i = i + 1
+	Next
+	
+	If Remain > row Then
+	  Response.Write "<a href='rm_stockin_view.asp?num=" & Showed+row & link & "'> Next >></a>"
+	End If
+	
+                    %></td>
+                </tr>
+                <tr>
+                  <td valign="top" bgcolor="#FFFFFF"><table width="100%" border="0" cellpadding="3" cellspacing="0" bordercolor="#CCCCCC">
+                    <tr>
+                      <td colspan="9" align="right">&nbsp;</td>
+                    </tr>
+                    <tr>
+                      <td colspan="9" align="center"><table border="0" align="right" cellpadding="5" cellspacing="0">
+                        <tr>
+                          <td nowrap="nowrap"><div align="center" class="titlegrey1"> Status :</div></td>
+                          <td <%if st_status="All" then response.write "bgcolor='#475387'" else response.write "bgcolor='#333333'" end if%>><strong><a href="rm_stockin_view.asp?st_status=All<%=slink%>"><font color="#FFFFFF">All</font></a></strong></td>
+                          <td <%if st_status="Open" then response.write "bgcolor='#475387'" else response.write "bgcolor='#333333'" end if%>><strong><a href="rm_stockin_view.asp?st_status=Open<%=slink%>"><font color="#FFFFFF">Open</font></a></strong></td>
+                          <td <%if st_status="Submitted" then response.write "bgcolor='#475387'" else response.write "bgcolor='#333333'" end if%>><strong><a href="rm_stockin_view.asp?st_status=Submitted<%=slink%>"><font color="#FFFFFF">Submitted</font></a></strong></td>
+                          <td <%if st_status="Approved" then response.write "bgcolor='#475387'" else response.write "bgcolor='#333333'" end if%>><strong><a href="rm_stockin_view.asp?st_status=Approved<%=slink%>"><font color="#FFFFFF">Approved</font></a></strong></td>
+                          <td <%if st_status="Cancel" then response.write "bgcolor='#475387'" else response.write "bgcolor='#333333'" end if%>><strong><a href="rm_stockin_view.asp?st_status=Cancel<%=slink%>"><font color="#FFFFFF">Cancel</font></a></strong></td>
+                        </tr>
+                      </table>
+                        </td>
+                    </tr>
+                    <tr>
+                      <td align="center" bgcolor="#475387"><font color="#FFFFFF"><strong>No.</strong></font></td>
+                      <td bgcolor="#475387"><font color="#FFFFFF"><strong>Stock-In No</strong></font></td>
+                      <td bgcolor="#475387"><font color="#FFFFFF"><strong>Remark</strong></font></td>
+                      <td bgcolor="#475387"><font color="#FFFFFF"><strong>Stock-In Date</strong></font></td>
+                      <td bgcolor="#475387"><strong><font color="#FFFFFF">From Store</font></strong></td>
+                      <td bgcolor="#475387"><font color="#FFFFFF"><strong>To Store</strong></font></td>
+                      <td align="right" bgcolor="#475387"><strong><font color="#FFFFFF">Total Qty</font></strong></td>
+                      <td align="right" bgcolor="#475387"><font color="#FFFFFF"><strong>Total Amt</strong></font></td>
+                      <td align="right" bgcolor="#475387"><font color="#FFFFFF"><strong>Approved by</strong></font></td>
+                    </tr>
+                    
+<% 
+st_totalqty = 0
+if not rs.eof then
+rs.Move Showed
+count = Showed + 1
+end if
+
+For j = Showed + 1 To LoopMax
+
+if i mod 2 = 0 then
+	nbgcolor = "#F3F3F3"
+else
+	nbgcolor = "#FFFFFF"
+end if
+
+%>
+                    <tr bgcolor="<%=nbgcolor%>">
+                      <td height="40"> <%=j%> </td>
+                      <td><strong><font color="#000000"><a href="rm_stockin_new.asp?st_no=<%=rs("st_no")%>"><%=rs("st_no")%></a></font></strong><br /><%=rs("st_status")%>
+                      </td>
+                      <td><%=rs("st_remark")%></td>
+                      <td><%=chkdate(rs("st_date"))%></td>
+                      <td><%=rs("st_fromwarehouse")%></td>
+                      <td><%=rs("st_towarehouse")%></td>
+                      <td align="right"><%=rs("st_totalqty")%></td>
+                      <td align="right"><%=chknumber2(rs("st_totalaAmt"))%></td>
+                      <td align="right"><%=rs("st_approvedby")%><br />
+                      <%=chkdatetime(rs("st_approveddate"))%></td>
+                    </tr>
+                    
+<%
+st_totalqty = st_totalqty + rs("st_totalqty")
+st_totalaAmt = st_totalaAmt + rs("st_totalaAmt")
+count = count + 1 
+i = i + 1
+rs.MoveNext
+Next
+rs.Close
+Set rs = Nothing
+%>  
+                    <tr>
+                      <td height="30" colspan="6" align="right" bgcolor="#CCCCCC"><strong>Total</strong></td>
+                      <td height="30" align="right" bgcolor="#CCCCCC"><strong><%=st_totalqty%></strong></td>
+                      <td height="30" align="right" bgcolor="#CCCCCC"><strong><%=ChkNumber2Decimal(st_totalaAmt)%></strong></td>
+                      <td height="30" align="center" bgcolor="#CCCCCC">&nbsp;</td>
+                    </tr>
+                  </table></td>
+                </tr>
+                <tr>
+                  <td height="30" align="right" bgcolor="#FFFFFF"><strong>Page</strong> <font color="3366ff"> <%=pagestartno%></font>of <font color="3366ff"> <%=pgCount%></font>:
+                  <%	
+	i = 0
+	For j = 1 To pgCount
+				If CInt(Showed) = ((j-1) * row) Then
+					Response.Write "<font color=#000000><b>"& j &"</b></font>"
+				Else
+					Response.Write " <a href='rm_stockin_view.asp?num=" & (j-1) * row & link & "'>"& j &"</a>"
+				End If
+			If Not j = pgCount Then Response.Write " "
+	i = i + 1
+	Next
+	
+	If Remain > row Then
+	  Response.Write "<a href='rm_stockin_view.asp?num=" & Showed+row & link & "'> Next >></a>"
+	End If
+	
+                    %></td>
+              </tr>
+                <tr>
+                  <td valign="top" bgcolor="#FFFFFF">&nbsp;</td>
+                </tr>
+              </table></td>
+        </tr>
+<!-- #include file="footer.asp" -->

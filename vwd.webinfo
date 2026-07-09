@@ -1,0 +1,11 @@
+﻿<?xml version="1.0"?>
+<!-- 
+  Visual Studio global web project settings.
+-->
+<VisualWebDeveloper>
+
+  <comReferences>
+    <reference Name="interop.aspsmartupload" ID="{860CAECE-0285-11D5-889B-00500486870F}\1.0\0"/>
+    <reference Name="interop.adodb" ID="{00000200-0000-0010-8000-00AA006D2EA4}\2.0\0"/>
+  </comReferences>
+</VisualWebDeveloper>

@@ -1,0 +1,83 @@
+
+
+/*Content - The content of the box, where text and images appear
+Padding - Clears an area around the content. The padding is transparent
+Border - A border that goes around the padding and content
+Margin - Clears an area outside the border. The margin is transparent*/
+.page_title {
+	font-family: Tahoma;
+	font-size: 16px;
+	font-weight: bold;
+	color: #006699;
+    padding-left: 10px;
+    padding-bottom: 20px;
+    padding-top: 20px;
+}
+
+table.tblSearch {
+    border: 3px solid #E5E5E5;
+    padding: 4px;
+    /*outline: green dotted thick;*/
+}
+table.tblSearch td{
+    height: 30px;
+}
+.search_title {
+    color:#FFFFFF;
+    font-weight:bold;
+    background-color:#8F8F8F;
+    padding-left: 5px;
+}
+table.tblSearch input[type=text]{
+    width: 95%;
+    margin-left: 5px;
+}
+
+table.tblListing {
+    border: 3px solid #E5E5E5;
+    padding: 4px;
+    /*outline: green dotted thick;*/
+}
+table.tblListing tr th{
+    color: #FFFFFF;
+    font-weight: bold;
+    background-color:#333333;
+}
+table.tblListing tbody {
+
+}
+table.tblListing tfoot {
+
+}
+table.tblListing th{
+    height: 40px;
+}
+table.tblListing td{
+    height: 30px;
+}
+table.tblListing th.line_separate, table.tblListing td.line_separate {
+    border-left: 5px solid white;
+}
+table.tblListing tr:nth-child(odd) {
+    background-color: #f1f1f1;
+}
+table.tblListing tr:nth-child(even) {
+    background-color: #ffffff;
+}
+/*table.tblListing tfoot tr{
+    border-top: 5px solid white;
+}*/
+
+table.tblPaging {
+    border: 3px solid #E5E5E5;
+    padding: 4px;
+    /*outline: green dotted thick;*/
+}
+table.tblPaging td{
+    height: 30px;
+}
+
+.font_alert{
+    color: red;
+}
+

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <connectionStrings>
+    <add connectionString="Data Source=YOUR_SQL_SERVER;Initial Catalog=YOUR_DATABASE;User Id=YOUR_USER;Password=YOUR_PASSWORD" name="ConnectionString" />
+  </connectionStrings>
+  <system.web>
+    <compilation debug="true" explicit="false" strict="false" targetFramework="4.7.2" />
+    <authentication mode="Windows" />
+    <customErrors mode="Off" />
+  </system.web>
+</configuration>
