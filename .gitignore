@@ -12,8 +12,7 @@
 
 # Local database / credential configuration
 web.config
-core/database/dbconnect.asp
-core/database/datastore.asp
+core/database/*.local.asp
 *.local.asp
 *.local.config
 

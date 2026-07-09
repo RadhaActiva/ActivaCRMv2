@@ -1,7 +1,5 @@
 <%
-' Copy this file to datastore.asp and fill in local values.
-Response.Buffer = True
-
+' Copy this file to datastore.local.asp and fill in local values.
 strconnect = "Provider=SQLOLEDB; Data Source=YOUR_SQL_SERVER; Initial Catalog=YOUR_DATABASE; User Id=YOUR_USER; Password=YOUR_PASSWORD"
 orderexcelpath = "D:\path\to\shared"
 INvoiceType = "INVS"
@@ -21,5 +19,9 @@ GSTCode = "SR"
 GSTRate = 0
 GSTRateBack = 0
 
-' Configure SMTP locally in datastore.asp if email sending is enabled.
+MailHost = ""
+MailFrom = ""
+MailUsername = ""
+MailPassword = ""
+MailPort = 2525
 %>
