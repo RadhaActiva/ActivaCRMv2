@@ -2035,7 +2035,8 @@ case "monthtechIncentive" 'this is meant for over-warranty jobs,ignore installat
 		if technician_tech_type = "IHT" then	
 			labourpayout = labourPer 'fixed amount
 		else
-			labourpayout = job_totallabourAmt * (labourPer/100)
+			'labourpayout = job_totallabourAmt * (labourPer/100)
+			labourPayout = Round(CDbl(job_totallabourAmt) * (CDbl(labourPer) / 100), 0)
 		end if
 		
 		totalB_Payout = labourpayout + sparepayout
