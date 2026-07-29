@@ -70,9 +70,9 @@ End If
 sql = "select job_code, job_date, job_cust_name, job_cust_address, job_cust_postcode, job_cust_tel1, job_cust_tel2," & _
       " job_createddate, job_createdby, job_tech_code, job_status " & _
       "from tbljob where " & _
-      " replace(replace(job_cust_tel1,'-',''),' ','') in (" & phones & ")" & _
-      " or replace(replace(job_cust_tel2,'-',''),' ','') in (" & phones & ")"
-
+      " replace(replace(replace(job_cust_tel1,'-',''),' ',''),'+','') in (" & phones & ")" & _
+      " or replace(replace(replace(job_cust_tel2,'-',''),' ',''),'+','') in (" & phones & ")"
+              
 set rs = server.CreateObject("adodb.recordset")
 rs.ActiveConnection = strconnect
 rs.Source = sql
@@ -92,8 +92,8 @@ else
 
     sql2 = "SELECT DISTINCT job_cust_postcode " & _
        "FROM tbljob " & _
-       "WHERE REPLACE(REPLACE(job_cust_tel1,'-',''),' ','') IN (" & phones & ") " & _
-       "OR REPLACE(REPLACE(job_cust_tel2,'-',''),' ','') IN (" & phones & ")"
+       "WHERE replace(replace(replace(job_cust_tel1,'-',''),' ',''),'+','') in (" & phones & ") " & _
+       "or replace(replace(replace(job_cust_tel2,'-',''),' ',''),'+','') in (" & phones & ")"
    
     set rs2 = server.CreateObject("adodb.recordset")
     rs2.ActiveConnection = strconnect
@@ -128,8 +128,8 @@ sql = "SELECT top 1 tblcustomer.cust_id,  " & _
 		"tblonlinewarranty.warrantyno, tblonlinewarranty.serialno, tblonlinewarranty.productmodel, tblonlinewarranty.dealername, tblonlinewarranty.purchase_date, " & _
 		"job_total_job = ( select count(job_id) from tbljob where tbljob.job_cust_code = tblcustomer.cust_code) " & _
 		"FROM tblcustomer left join tblonlinewarranty on tblcustomer.cust_email=tblonlinewarranty.customeremail " & _
-	    "where replace(replace(cust_tel1,'-',''),' ','') in (" & phones & ")" & _
-        "or replace(replace(cust_tel2,'-',''),' ','') in (" & phones & ")"
+	    "WHERE replace(replace(replace(cust_tel1,'-',''),' ',''),'+','') in (" & phones & ") " & _
+        "or replace(replace(replace(cust_tel2,'-',''),' ',''),'+','') in (" & phones & ")"
 
 set rs1 = server.CreateObject("adodb.recordset")
 rs1.ActiveConnection = strconnect

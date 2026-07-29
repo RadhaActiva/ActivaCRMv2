@@ -44,6 +44,10 @@ set rs = server.CreateObject("adodb.recordset")
                           <td align="center" scope="row"><strong>4.</strong></td>
                           <td scope="row"><a href="mis_master_city_view.asp"><strong>City</strong></a></td>
                         </tr>
+                        <tr>
+                          <td align="center" scope="row"><strong>5.</strong></td>
+                          <td scope="row"><a href="mis_master_warranty_upload.asp"><strong>Warranty Upload</strong></a></td>
+                        </tr>
                       </table></td>
                       <td align="left" valign="top">&nbsp;</td>
                     </tr>

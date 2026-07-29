@@ -742,8 +742,8 @@ function confirmformorder2(id,orderlinks,otype)
                           <option value="CF" <%if job_type="CF" then response.write " selected"%>>CF-Ceiling Fan</option>
                           <option value="WH" <%if job_type="WH" then response.write " selected"%>>WH-Water Heater</option>
                         </select></td>
-                        <td align="left" bgcolor="#CD6155"><font color="#FFFFFF"><strong>Serial #</strong></font></td>
-                        <td align="left"><input name="job_SN_no" type="text" id="job_SN_no" value='<%=job_SN_no%>' maxlength="50" /></td>
+                       <!-- <td align="left" bgcolor="#CD6155"><font color="#FFFFFF"><strong>Serial #</strong></font></td>
+                        <td align="left"><input name="job_SN_no" type="text" id="job_SN_no" value='<%=job_SN_no%>' maxlength="50" /></td>-->
                       </tr>
                       <tr>
                         <td bgcolor="#CD6155"><font color="#FFFFFF"><strong>Item Code*</strong></font></td>

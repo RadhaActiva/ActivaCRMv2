@@ -1,4 +1,12 @@
 <!-- #include file="header.asp" -->
+<head>
+    <style type="text/css">
+        #button3 {
+            height: 43px;
+            width: 160px;
+        }
+    </style>
+</head>
 <%
 job_tech_type = request("job_tech_type")
 Searchor_date = request("Searchor_date")
@@ -65,14 +73,40 @@ end function
 
 <script language="javascript">
 
-function confirmForm() 
-{
-	
-	document.form1.action = "rm_rpt_farmonth_year.asp";
-	document.form1.method = "get";
-	document.form1.submit();
-}
-// -->
+    function confirmForm() {
+
+        document.form1.action = "rm_rpt_farmonth_year.asp";
+        document.form1.method = "get";
+        document.form1.submit();
+    }
+
+    function filterModels() {
+        var input = document.getElementById("modelSearch");
+        var filter = input.value.toUpperCase();
+        var select = document.getElementById("job_tech_model");
+
+        for (var i = 0; i < select.options.length; i++) {
+            var option = select.options[i];
+            var text = option.text.toUpperCase();
+            // Keep option visible if it matches filter OR it's selected
+            if (text.includes(filter) || option.selected) {
+                option.style.display = "";
+            } else {
+                option.style.display = "none";
+            }
+        }
+    }
+
+    function clearSelection() {
+        var select = document.getElementById("job_tech_model");
+        for (var i = 0; i < select.options.length; i++) {
+            select.options[i].selected = false;
+            select.options[i].style.display = ""; // Reset all to visible
+        }
+        document.getElementById("modelSearch").value = "";
+    }
+
+    // -->
 </script>
         <tr>
           <td><table width="97%" border="0" align="center" cellpadding="0" cellspacing="0">
@@ -137,18 +171,23 @@ function confirmForm()
                       <tr>
                         <td class="titlegrey1">Type                        </td>
                         <td width="14%"><span class="titlegrey1">Model</span></td>
-                        <td width="24%" align="center"><span class="titlegrey1">Total Sales </span></td>
-                        <td rowspan="2"><span class="titlegrey1">
-                          <input type="submit" name="button" id="button3" value="Generate Report" />
-                        </span></td>
+                       
+                        
                       </tr>
                       <tr>
                         <td valign="top" class="titlegrey1"><select name="job_tech_type" id="job_tech_type" onchange="javascript:confirmForm();">
                           <option value="CF" <%if job_tech_type="CF" then response.write " selected"%>>CF-Ceiling Fan</option>
                           <option value="WH" <%if job_tech_type="WH" then response.write " selected"%>>WH-Water Heater</option>
-                        </select></td>
+                        </select>
+                            <br />
+                            <br />
+                         <button type="button" onclick="clearSelection()" style="margin-bottom: 10px;">Clear Selection</button>
+
+                        </td>
                         <td width="14%"><span class="titlegrey1">
-                          <select name="job_tech_model" size="6" multiple="multiple" id="job_tech_model">
+                            <input type="text" id="modelSearch" placeholder="Search model..." onkeyup="filterModels()" style="width: 100%; margin-bottom: 5px;">
+                            <select name="job_tech_model" multiple size="10" id="job_tech_model">
+                       <!--   <select name="job_tech_model" size="6" multiple="multiple" id="job_tech_model">-->
                             <option value="" <%if job_tech_model="" then response.write " selected"%>>All Model</option>
                               <%			
 				sql = "SELECT md_id, md_code, md_desc, md_category, md_model, md_barcode, md_type, md_status, md_unitprice FROM tblmodel where (md_category = 'FAN : CEILING FAN' or md_category = 'WHEAT : WATER HEATER' or md_category ='SWHEA : STORAGE WATER HEATER') and md_code is not null "
@@ -174,8 +213,8 @@ function confirmForm()
                           </select>
                         </span></td>
                         <td width="24%" align="center" valign="top"><label for="TotalSales"></label>
-                        <input name="TotalSales" type="text" id="TotalSales" value="<%=TotalSales%>" size="10" maxlength="10" /></td>
-                      </tr>
+                        Total Sales &nbsp;<input name="TotalSales" type="text" id="TotalSales" value="<%=TotalSales%>" size="10" maxlength="10" />&nbsp;&nbsp;&nbsp;<span class="titlegrey1"><input type="submit" name="button1" id="button3" value="Generate Report" /></span></td>
+                      </tr>                        
                     </table>
                   </form></td>
                 </tr>
@@ -271,7 +310,7 @@ end if
                       <td align="center" nowrap="nowrap" bgcolor="#F3F3F3"><strong><font color="#0000FF"><a href="javascript:popup('rm_rpt_farmonth_year_detail.asp?jobmonth=0&jobyear=<%=jobyear%>&faulth_code=<%=rs1("faulth_code")%>&job_tech_type=<%=job_tech_type%>&job_tech_model=<%=job_tech_model%>&stype=fa_WI_under&lastmonth=<%=jobmonth1%>','cb18','scrollbars=yes,resizable=yes,width=600,height=500')"><%=rs1("fa_WI_under")%></a></font></strong></td>
                       <td align="center" nowrap="nowrap" bgcolor="#FFFFFF"><strong><font color="#0000FF"><a href="javascript:popup('rm_rpt_farmonth_year_detail.asp?jobmonth=0&jobyear=<%=jobyear%>&faulth_code=<%=rs1("faulth_code")%>&job_tech_type=<%=job_tech_type%>&job_tech_model=<%=job_tech_model%>&stype=fa_CF_over&lastmonth=<%=jobmonth1%>','cb18','scrollbars=yes,resizable=yes,width=600,height=500')"><%=rs1("fa_CF_over")%></a></font></strong></td>
                       <td align="center" nowrap="nowrap" bgcolor="#FFFFFF"><strong><font color="#0000FF"><a href="javascript:popup('rm_rpt_farmonth_year_detail.asp?jobmonth=0&jobyear=<%=jobyear%>&faulth_code=<%=rs1("faulth_code")%>&job_tech_type=<%=job_tech_type%>&job_tech_model=<%=job_tech_model%>&stype=fa_CF_under&lastmonth=<%=jobmonth1%>','cb18','scrollbars=yes,resizable=yes,width=600,height=500')"><%=rs1("fa_CF_under")%></a></font></strong></td>
-                      </tr>
+                    </tr>
                     
 <%
 fa_month1_over = fa_month1_over + rs1("fa_month1_over")
@@ -367,7 +406,7 @@ total_reject_units = total_md_reject_units+total_ds_reject_units+total_wi_reject
                       <td align="center" nowrap="nowrap" bgcolor="#FFFFFF"><strong><font color="#0000FF"><%=fa_CF_over%></font></strong></td>
                       <td align="center" nowrap="nowrap" bgcolor="#FFFFFF"><strong><font color="#0000FF"><%=fa_CF_under%></font></strong></td>
                     </tr>
-<!--                  </table></td>-->
+                  </table></td>
                 </tr>
                 <tr>
                   <td height="30" colspan="2" align="right" bgcolor="#FFFFFF">&nbsp;</td>
@@ -375,7 +414,6 @@ total_reject_units = total_md_reject_units+total_ds_reject_units+total_wi_reject
                 <tr>
                   <td colspan="2" align="left" bgcolor="#FFFFFF">&nbsp;</td>
                 </tr>
-                <tr>
                     <table width="60%" border="1" cellpadding="4" cellspacing="0">
                         <tr>
                             <td width="40%" height="20" align="left" nowrap="nowrap"><strong> Sales Quantity </strong></td>
@@ -401,11 +439,11 @@ total_reject_units = total_md_reject_units+total_ds_reject_units+total_wi_reject
                         <tr>
                             <td></td>
                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong>Reject Rate %</strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(md_under_reject,1)%></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(ds_under_reject,1) %></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(wi_under_reject,1) %></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(cf_under_reject,1) %></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_under_reject_rate,1)%></strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(md_under_reject,1)%>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(ds_under_reject,1) %>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(wi_under_reject,1) %>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(cf_under_reject,1) %>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_under_reject_rate,1)%>%</strong></td>
                         </tr>
                         <tr><td colspan="2" valign="top" bgcolor="#FFFFFF">&nbsp;</td></tr>
                         <tr>
@@ -428,11 +466,11 @@ total_reject_units = total_md_reject_units+total_ds_reject_units+total_wi_reject
                         <tr>
                             <td></td>
                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong>Reject Rate %</strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(md_over_reject,1) %></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(ds_over_reject,1) %></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(wi_over_reject,1) %></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(cf_over_reject,1) %></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_over_reject_rate,1)%></strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(md_over_reject,1) %>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(ds_over_reject,1) %>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(wi_over_reject,1) %>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(cf_over_reject,1) %>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_over_reject_rate,1)%>%</strong></td>
                         </tr>
                           <tr><td colspan="2" valign="top" bgcolor="#FFFFFF">&nbsp;</td></tr>
                         <tr>
@@ -455,16 +493,16 @@ total_reject_units = total_md_reject_units+total_ds_reject_units+total_wi_reject
                         <tr>
                             <td></td>
                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong>Reject Rate %</strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_md_reject_per,1)%></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_ds_reject_per,1)%></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_wi_reject_per,1)%></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_cf_reject_per,1)%></strong></td>
-                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_reject_per,1)%></strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_md_reject_per,1)%>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_ds_reject_per,1)%>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_wi_reject_per,1)%>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_cf_reject_per,1)%>%</strong></td>
+                             <td height="60%" align="left" nowrap="nowrap" bgcolor="#FFFFFF"><strong><%=formatnumber(total_reject_per,1)%>%</strong></td>
                         </tr>
                     </table>
-                  </table></td>
+                  <!--</table></td>
                   
-             <!-- </tr>
-              </table></td>
-        </tr>-->
+              </tr>
+              </table></td>-->
+        </tr>
 <!-- #include file="footer.asp" -->

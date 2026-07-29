@@ -1082,6 +1082,7 @@ Select Case act
 
  '----------------------------------------------------------------------------------------------------    
   Case "submitJob"  
+	Dim submitJobModel, submitJobPurchaseDate, submitJobWarrantyMonth, submitJobWarrantyExpiryDate
 
 	if request.form("job_cust_cnty_id") = "129" then
 		sql = "select ct_name from tblcity where ct_id =" & request("job_cust_city_id") 
@@ -1140,15 +1141,38 @@ Select Case act
 			rs("job_cust_tel2") = ChkString(Request.Form("job_cust_tel2")) 
 			rs("job_remark") = ChkString(Request.Form("job_remark")) 
 
-		   if ChkString(Request.Form("job_purchase_date")) <> "" then  
-			   rs("job_purchase_date") = ChkString(Request.Form("job_purchase_date")) 
-			   if DATEDIFF("d",chkdate(Request("job_purchase_date")),chkdate(date()))  > 365 then 
-				  rs("job_onlineWrtyStatus") = "Over"
-			   else
-				  rs("job_onlineWrtyStatus") = "Under"
-			   end if
-			else
-			   rs("job_onlineWrtyStatus") = "Under"
+			submitJobModel = Trim(ChkString(Request.Form("job_Model")))
+			submitJobPurchaseDate = Trim(ChkString(Request.Form("job_purchase_date")))
+			rs("job_onlineWrtyStatus") = "Over"
+
+			if submitJobPurchaseDate <> "" then
+				rs("job_purchase_date") = submitJobPurchaseDate
+			end if
+
+			if submitJobModel <> "" and submitJobPurchaseDate <> "" then
+				sql5 = "select [month] from tbl_warranty where md_code = '" & submitJobModel & "'"
+				set rs5 = server.CreateObject("adodb.recordset")
+				rs5.ActiveConnection = strconnect
+				rs5.Source = sql5
+				rs5.CursorLocation  = 3
+				rs5.CursorType = 2
+				rs5.LockType = 2
+				rs5.Open
+				if not rs5.eof then 					
+					submitJobWarrantyMonth = rs5("month")
+				end if
+
+				'sql = "select [month] from tbl_warranty where md_code = '" & submitJobModel & "'"
+				'submitJobWarrantyMonth = selectid(sql)
+
+				if not isnull(submitJobWarrantyMonth) then
+					if trim(CStr(submitJobWarrantyMonth & "")) <> "" and isnumeric(submitJobWarrantyMonth) and chkdate(submitJobPurchaseDate) <> "" then
+						submitJobWarrantyExpiryDate = DateAdd("m", CLng(submitJobWarrantyMonth), CDate(chkdate(submitJobPurchaseDate)))
+						if Date() <= submitJobWarrantyExpiryDate then
+							rs("job_onlineWrtyStatus") = "Under"
+						end if
+					end if
+				end if
 			end if
 			rs("job_onlineWrtyNo") = ChkString(Request.Form("job_onlineWrtyNo")) 
 			rs("job_type") = ChkString(Request.Form("job_type")) 

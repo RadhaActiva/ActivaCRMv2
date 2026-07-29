@@ -7,6 +7,7 @@ jobyear= request("jobyear")
 tech_code = request("tech_code")
 checkclaim = request("checkclaim")
 techtype="IHT"
+post_office=""
    
 if request("copylink") = "Yes" and request("verified") <> "" then
     program_str=Request.ServerVariables("URL")
@@ -96,7 +97,8 @@ sql2 = "SELECT rpc_id, rpc_month, rpc_year, rpc_tech_code, rpc_tech_name, rpc_se
 		rs.Close
 end if
 
-if rpc_tech_code <> "" then	  
+if rpc_tech_code <> "" then	   
+
 sql = "SELECT tech_id, tech_code, tech_type, tech_name, tech_icno, tech_address, tech_postcode, tech_state, tech_state_id,  tech_city, tech_city_id, tech_email, tech_tel1, tech_tel2, " & _
       "tech_createdby, tech_cretateddate, tech_carmodel, tech_carplateno, tech_carcolour, tech_password, tech_status, tech_area, tech_area_id, tech_wh_code, tech_salary,b.state_name " & _
 	  "FROM tbltechnician a join tblstate b on b.state_id = a.tech_area_id WHERE a.tech_code = '" & rpc_tech_code & "' "
@@ -123,14 +125,28 @@ sql = "SELECT tech_id, tech_code, tech_type, tech_name, tech_icno, tech_address,
 			tech_carcolour = rs("tech_carcolour") 
 			tech_password = rs("tech_password") 
 			tech_status = rs("tech_status") 
-			'tech_area = rs("tech_area")
-            tech_area = rs("state_name")
+			'tech_area = rs("tech_area")        
+            tech_area = rs("tech_city")  + "," + rs("tech_state") 
 			tech_area_id = rs("tech_area_id")
 			tech_wh_code = rs("tech_wh_code")
             tech_salary = rs("tech_salary")
+
+                    set rs11 = server.CreateObject("adodb.recordset")
+                    sql11 = "SELECT post_office from tblpostcode WHERE postcode = '" & tech_postcode & "' "
+                    rs11.Open sql11,strconnect,0,1,&H0001   
+                    If Not rs11.EOF Then
+                        tech_area = Trim(rs11("post_office") & "")
+                        If Trim(rs("tech_state") & "") <> "" Then
+                            If tech_area <> "" Then
+                                tech_area = tech_area & ", "
+                            End If
+                            tech_area = tech_area & Trim(rs("tech_state") & "")
+                        End If
+                    End If
+                    rs11.close
+                    end if
 		End If
 		rs.Close
-end if
 
 if checkclaim <> "" then 
     stype="VerifyOK"

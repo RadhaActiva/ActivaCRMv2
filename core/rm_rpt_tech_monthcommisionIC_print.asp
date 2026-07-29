@@ -121,9 +121,23 @@ sql = "SELECT tech_id, tech_code, tech_type, tech_name, tech_icno, tech_address,
 			tech_area = rs("state_name")
 			tech_area_id = rs("tech_area_id")
 			tech_wh_code = rs("tech_wh_code")
-		End If
-		rs.Close
-end if
+
+                           set rs11 = server.CreateObject("adodb.recordset")
+            sql11 = "SELECT post_office from tblpostcode WHERE postcode = '" & tech_postcode & "' "
+            rs11.Open sql11,strconnect,0,1,&H0001   
+            If Not rs11.EOF Then
+                tech_area = Trim(rs11("post_office") & "")
+                If Trim(rs("tech_state") & "") <> "" Then
+                    If tech_area <> "" Then
+                        tech_area = tech_area & ", "
+                    End If
+                    tech_area = tech_area & Trim(rs("tech_state") & "")
+                End If
+            End If
+            rs11.close
+            end if
+End If
+rs.Close
 
 if rpc_total = "" then
     response.write ("Error ! Please contact Service Coordinator")
