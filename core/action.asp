@@ -1082,7 +1082,7 @@ Select Case act
 
  '----------------------------------------------------------------------------------------------------    
   Case "submitJob"  
-	Dim submitJobModel, submitJobPurchaseDate, submitJobWarrantyMonth, submitJobWarrantyExpiryDate
+	Dim submitJobModel, submitJobPurchaseDate, submitJobWarrantyMonth, submitJobWarrantyExpiryDate, sql5, rs5
 
 	if request.form("job_cust_cnty_id") = "129" then
 		sql = "select ct_name from tblcity where ct_id =" & request("job_cust_city_id") 
@@ -1152,18 +1152,12 @@ Select Case act
 			if submitJobModel <> "" and submitJobPurchaseDate <> "" then
 				sql5 = "select [month] from tbl_warranty where md_code = '" & submitJobModel & "'"
 				set rs5 = server.CreateObject("adodb.recordset")
-				rs5.ActiveConnection = strconnect
-				rs5.Source = sql5
-				rs5.CursorLocation  = 3
-				rs5.CursorType = 2
-				rs5.LockType = 2
-				rs5.Open
+				rs5.Open sql5, strconnect, 0, 1
 				if not rs5.eof then 					
 					submitJobWarrantyMonth = rs5("month")
 				end if
-
-				'sql = "select [month] from tbl_warranty where md_code = '" & submitJobModel & "'"
-				'submitJobWarrantyMonth = selectid(sql)
+				rs5.Close
+				set rs5 = nothing
 
 				if not isnull(submitJobWarrantyMonth) then
 					if trim(CStr(submitJobWarrantyMonth & "")) <> "" and isnumeric(submitJobWarrantyMonth) and chkdate(submitJobPurchaseDate) <> "" then

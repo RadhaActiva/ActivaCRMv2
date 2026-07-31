@@ -184,9 +184,9 @@ end function
                          <button type="button" onclick="clearSelection()" style="margin-bottom: 10px;">Clear Selection</button>
 
                         </td>
-                        <td width="14%"><span class="titlegrey1">
+                        <td width="20%"><span class="titlegrey1">
                             <input type="text" id="modelSearch" placeholder="Search model..." onkeyup="filterModels()" style="width: 100%; margin-bottom: 5px;">
-                            <select name="job_tech_model" multiple size="10" id="job_tech_model">
+                            <select name="job_tech_model" multiple size="20" id="job_tech_model">
                        <!--   <select name="job_tech_model" size="6" multiple="multiple" id="job_tech_model">-->
                             <option value="" <%if job_tech_model="" then response.write " selected"%>>All Model</option>
                               <%			
@@ -196,7 +196,7 @@ end function
 				sql = sql & " and md_type='" & job_tech_type & "' "
 				end if
 				
-				sql = sql & " order by md_code "	
+				sql = sql & " order by md_desc "	
 				
                 set rs = server.CreateObject("adodb.recordset")
 				rs.Open sql,strconnect,3,3,&H0001

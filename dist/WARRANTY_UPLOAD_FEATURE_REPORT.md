@@ -6,7 +6,7 @@ Added a MIS Master option for periodically replacing `tbl_warranty` from an uplo
 
 ## Input contract
 
-- Accepted files: `.xlsx` and `.xls`
+- Accepted files: `.csv`, `.xlsx` and `.xls`
 - Maximum file size: 5 MB
 - Required headers within the first 20 worksheet rows:
   - `Item Code`
@@ -18,6 +18,7 @@ Added a MIS Master option for periodically replacing `tbl_warranty` from an uplo
 - `Description` is optional and limited to 300 characters.
 - `Month` is optional; when provided it must be a whole number from 0 to 2147483647.
 - Duplicate item codes are rejected case-insensitively.
+- CSV files are read directly with standard ADO streams and do not require Microsoft Access Database Engine. Excel-style quoted fields, embedded commas, escaped quotes, and embedded line breaks are supported. Save CSV input as UTF-8.
 
 ## Replacement behavior
 

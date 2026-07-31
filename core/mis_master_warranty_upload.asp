@@ -24,6 +24,7 @@ Function WarrantyCleanText(value)
     cleaned = Replace(cleaned, Chr(9), " ")
     cleaned = Replace(cleaned, Chr(10), " ")
     cleaned = Replace(cleaned, Chr(13), " ")
+    cleaned = Replace(cleaned, ChrW(&HFEFF), "")
     WarrantyCleanText = Trim(cleaned)
 End Function
 
@@ -100,6 +101,139 @@ Function WarrantyHeaderAttribute(headers, attributeName)
     End If
 End Function
 
+Function WarrantyReadCsvRows(filePath, ByRef csvError)
+    Dim csvRows, csvStream, csvText, csvPosition, csvLength, currentCharacter
+    Dim fieldValue, fieldIndex, rowIndex, rowValues(2), inQuotes
+
+    Set csvRows = Server.CreateObject("Scripting.Dictionary")
+    Set csvStream = Nothing
+    csvError = ""
+
+    On Error Resume Next
+    Set csvStream = Server.CreateObject("ADODB.Stream")
+    csvStream.Type = 2
+    csvStream.Charset = "utf-8"
+    csvStream.Open
+    csvStream.LoadFromFile filePath
+    csvText = csvStream.ReadText
+    If Err.Number <> 0 Then
+        csvError = "The CSV file could not be read. Save it as CSV UTF-8 and try again. " & Err.Description
+        Err.Clear
+    End If
+    If Not csvStream Is Nothing Then
+        If csvStream.State <> 0 Then csvStream.Close
+    End If
+    Set csvStream = Nothing
+    On Error GoTo 0
+
+    If csvError <> "" Then
+        Set WarrantyReadCsvRows = csvRows
+        Exit Function
+    End If
+
+    fieldValue = ""
+    fieldIndex = 0
+    rowIndex = 0
+    inQuotes = False
+    rowValues(0) = ""
+    rowValues(1) = ""
+    rowValues(2) = ""
+    csvPosition = 1
+    csvLength = Len(csvText)
+
+    Do While csvPosition <= csvLength
+        currentCharacter = Mid(csvText, csvPosition, 1)
+
+        If currentCharacter = Chr(34) Then
+            If inQuotes And csvPosition < csvLength And Mid(csvText, csvPosition + 1, 1) = Chr(34) Then
+                fieldValue = fieldValue & Chr(34)
+                csvPosition = csvPosition + 1
+            Else
+                inQuotes = Not inQuotes
+            End If
+        ElseIf currentCharacter = "," And Not inQuotes Then
+            If fieldIndex <= 2 Then rowValues(fieldIndex) = fieldValue
+            fieldIndex = fieldIndex + 1
+            fieldValue = ""
+        ElseIf (currentCharacter = Chr(13) Or currentCharacter = Chr(10)) And Not inQuotes Then
+            If fieldIndex <= 2 Then rowValues(fieldIndex) = fieldValue
+            rowIndex = rowIndex + 1
+            csvRows.Add CStr(rowIndex), Array(rowValues(0), rowValues(1), rowValues(2))
+
+            fieldValue = ""
+            fieldIndex = 0
+            rowValues(0) = ""
+            rowValues(1) = ""
+            rowValues(2) = ""
+
+            If currentCharacter = Chr(13) And csvPosition < csvLength And Mid(csvText, csvPosition + 1, 1) = Chr(10) Then
+                csvPosition = csvPosition + 1
+            End If
+        Else
+            fieldValue = fieldValue & currentCharacter
+        End If
+
+        csvPosition = csvPosition + 1
+    Loop
+
+    If inQuotes Then
+        csvError = "The CSV file contains an unterminated quoted field."
+    ElseIf fieldValue <> "" Or fieldIndex > 0 Then
+        If fieldIndex <= 2 Then rowValues(fieldIndex) = fieldValue
+        rowIndex = rowIndex + 1
+        csvRows.Add CStr(rowIndex), Array(rowValues(0), rowValues(1), rowValues(2))
+    End If
+
+    Set WarrantyReadCsvRows = csvRows
+End Function
+
+Sub WarrantyCollectRow(sourceRowNumber, sourceItemCode, sourceDescription, sourceMonth, ByRef headerFound, validationErrors, warrantyRows)
+    Dim cleanItemCode, cleanDescription, cleanMonth, cleanMonthValue, cleanDuplicateKey
+
+    cleanItemCode = WarrantyCleanText(sourceItemCode)
+    cleanDescription = WarrantyCleanText(sourceDescription)
+    cleanMonth = WarrantyCleanText(sourceMonth)
+
+    If Not headerFound Then
+        If LCase(cleanItemCode) = "item code" And LCase(cleanDescription) = "description" And LCase(cleanMonth) = "month" Then
+            headerFound = True
+        End If
+        Exit Sub
+    End If
+
+    If cleanItemCode = "" And cleanDescription = "" And cleanMonth = "" Then Exit Sub
+
+    If cleanItemCode = "" Then
+        validationErrors.Add CStr(sourceRowNumber) & "_code", "Row " & sourceRowNumber & ": Item Code is required."
+    ElseIf Len(cleanItemCode) > 50 Then
+        validationErrors.Add CStr(sourceRowNumber) & "_code", "Row " & sourceRowNumber & ": Item Code exceeds 50 characters."
+    End If
+
+    If Len(cleanDescription) > 300 Then
+        validationErrors.Add CStr(sourceRowNumber) & "_description", "Row " & sourceRowNumber & ": Description exceeds 300 characters."
+    End If
+
+    cleanMonthValue = Null
+    If cleanMonth <> "" Then
+        If Not IsNumeric(cleanMonth) Then
+            validationErrors.Add CStr(sourceRowNumber) & "_month", "Row " & sourceRowNumber & ": Month must be a whole number."
+        ElseIf CDbl(cleanMonth) <> Fix(CDbl(cleanMonth)) Or CDbl(cleanMonth) < 0 Or CDbl(cleanMonth) > 2147483647 Then
+            validationErrors.Add CStr(sourceRowNumber) & "_month", "Row " & sourceRowNumber & ": Month must be a whole number from 0 to 2147483647."
+        Else
+            cleanMonthValue = CLng(cleanMonth)
+        End If
+    End If
+
+    If cleanItemCode <> "" And Len(cleanItemCode) <= 50 Then
+        cleanDuplicateKey = UCase(cleanItemCode)
+        If warrantyRows.Exists(cleanDuplicateKey) Then
+            validationErrors.Add CStr(sourceRowNumber) & "_duplicate", "Row " & sourceRowNumber & ": duplicate Item Code '" & cleanItemCode & "'."
+        Else
+            warrantyRows.Add cleanDuplicateKey, Array(cleanItemCode, cleanDescription, cleanMonthValue)
+        End If
+    End If
+End Sub
+
 Function WarrantyReceiveUpload(fileSystem, ByRef savedPath, ByRef fileExtension, ByRef originalFileName, ByRef receiveError)
     Dim contentType, boundaryPosition, boundary, delimiter
     Dim requestBytes, binaryStream, textStream, outputStream, bodyText
@@ -118,12 +252,12 @@ Function WarrantyReceiveUpload(fileSystem, ByRef savedPath, ByRef fileExtension,
     Set temporaryFolder = Nothing
 
     If Request.TotalBytes <= 0 Then
-        receiveError = "Please select exactly one Excel workbook."
+        receiveError = "Please select exactly one Excel workbook or CSV file."
         Exit Function
     End If
 
     If Request.TotalBytes > 5242880 Then
-        receiveError = "The workbook exceeds the 5 MB upload limit."
+        receiveError = "The uploaded file exceeds the 5 MB limit."
         Exit Function
     End If
 
@@ -164,7 +298,7 @@ Function WarrantyReceiveUpload(fileSystem, ByRef savedPath, ByRef fileExtension,
     bodyText = textStream.ReadText
 
     If Err.Number <> 0 Then
-        receiveError = "The uploaded workbook could not be decoded for processing. " & Err.Description
+        receiveError = "The uploaded file could not be decoded for processing. " & Err.Description
         Err.Clear
     End If
     On Error GoTo 0
@@ -205,7 +339,7 @@ Function WarrantyReceiveUpload(fileSystem, ByRef savedPath, ByRef fileExtension,
         Loop
 
         If fileCount <> 1 Or candidateStart = 0 Or candidateLength <= 0 Then
-            receiveError = "Please select exactly one Excel workbook."
+            receiveError = "Please select exactly one Excel workbook or CSV file."
         End If
     End If
 
@@ -216,11 +350,11 @@ Function WarrantyReceiveUpload(fileSystem, ByRef savedPath, ByRef fileExtension,
 
         dotPosition = InStrRev(originalFileName, ".")
         If dotPosition = 0 Then
-            receiveError = "Only .xlsx or .xls workbooks are accepted."
+            receiveError = "Only .csv, .xlsx or .xls files are accepted."
         Else
             fileExtension = LCase(Mid(originalFileName, dotPosition + 1))
-            If fileExtension <> "xlsx" And fileExtension <> "xls" Then
-                receiveError = "Only .xlsx or .xls workbooks are accepted."
+            If fileExtension <> "csv" And fileExtension <> "xlsx" And fileExtension <> "xls" Then
+                receiveError = "Only .csv, .xlsx or .xls files are accepted."
             End If
         End If
     End If
@@ -252,7 +386,7 @@ Function WarrantyReceiveUpload(fileSystem, ByRef savedPath, ByRef fileExtension,
         binaryStream.CopyTo outputStream, candidateLength
         outputStream.SaveToFile savedPath, 2
         If Err.Number <> 0 Then
-            receiveError = "The uploaded workbook could not be saved for processing. " & Err.Description
+            receiveError = "The uploaded file could not be saved for processing. " & Err.Description
             Err.Clear
             WarrantyDeleteFile fileSystem, savedPath
             savedPath = ""
@@ -285,6 +419,7 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
     Dim fileExtension, temporaryFilePath, originalFileName
     Dim fileSystem, uploadError
     Dim excelConnection, worksheetName, excelRecordset, excelConnectionError
+    Dim csvRows, csvRowKey, csvRowData, csvReadError
     Dim rowNumber, headerFound, itemCode, itemDescription, monthText, monthValue
     Dim validationErrors, warrantyRows, warrantyData, duplicateKey
     Dim databaseConnection, insertCommand, databaseError, insertedCount
@@ -298,14 +433,14 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
 
     Call WarrantyReceiveUpload(fileSystem, temporaryFilePath, fileExtension, originalFileName, uploadError)
 
-    If uploadError = "" Then
+    If uploadError = "" And fileExtension <> "csv" Then
         Set excelConnection = WarrantyOpenExcelConnection(temporaryFilePath, fileExtension, excelConnectionError)
         If excelConnection Is Nothing Then
             uploadError = "The workbook could not be opened. Ensure Microsoft Access Database Engine is installed on the server. " & excelConnectionError
         End If
     End If
 
-    If uploadError = "" Then
+    If uploadError = "" And fileExtension <> "csv" Then
         worksheetName = WarrantyFirstWorksheet(excelConnection)
         If Len(worksheetName) = 0 Then
             uploadError = "The workbook does not contain a readable worksheet."
@@ -319,75 +454,51 @@ If Request.ServerVariables("REQUEST_METHOD") = "POST" Then
         rowNumber = 0
         headerFound = False
 
-        Set excelRecordset = Server.CreateObject("ADODB.Recordset")
-        On Error Resume Next
-        excelRecordset.Open "SELECT F1, F2, F3 FROM [" & Replace(worksheetName, "]", "]]") & "]", excelConnection, 0, 1
-        If Err.Number <> 0 Then
-            uploadError = "The first three worksheet columns could not be read. " & Err.Description
-            Err.Clear
+        If fileExtension = "csv" Then
+            Set csvRows = WarrantyReadCsvRows(temporaryFilePath, csvReadError)
+            If csvReadError <> "" Then uploadError = csvReadError
+
+            If uploadError = "" Then
+                For Each csvRowKey In csvRows.Keys
+                    rowNumber = CLng(csvRowKey)
+                    csvRowData = csvRows(csvRowKey)
+                    Call WarrantyCollectRow(rowNumber, csvRowData(0), csvRowData(1), csvRowData(2), headerFound, validationErrors, warrantyRows)
+                    If Not headerFound And rowNumber >= 20 Then Exit For
+                Next
+            End If
+            Set csvRows = Nothing
+        Else
+            Set excelRecordset = Server.CreateObject("ADODB.Recordset")
+            On Error Resume Next
+            excelRecordset.Open "SELECT F1, F2, F3 FROM [" & Replace(worksheetName, "]", "]]") & "]", excelConnection, 0, 1
+            If Err.Number <> 0 Then
+                uploadError = "The first three worksheet columns could not be read. " & Err.Description
+                Err.Clear
+            End If
+            On Error GoTo 0
+
+            If uploadError = "" Then
+                Do While Not excelRecordset.EOF
+                    rowNumber = rowNumber + 1
+                    Call WarrantyCollectRow(rowNumber, excelRecordset.Fields(0).Value, excelRecordset.Fields(1).Value, excelRecordset.Fields(2).Value, headerFound, validationErrors, warrantyRows)
+                    If Not headerFound And rowNumber >= 20 Then Exit Do
+                    excelRecordset.MoveNext
+                Loop
+            End If
+
+            If excelRecordset.State <> 0 Then excelRecordset.Close
+            Set excelRecordset = Nothing
         End If
-        On Error GoTo 0
 
         If uploadError = "" Then
-            Do While Not excelRecordset.EOF
-                rowNumber = rowNumber + 1
-                itemCode = WarrantyCleanText(excelRecordset.Fields(0).Value)
-                itemDescription = WarrantyCleanText(excelRecordset.Fields(1).Value)
-                monthText = WarrantyCleanText(excelRecordset.Fields(2).Value)
-
-                If Not headerFound Then
-                    If LCase(itemCode) = "item code" And LCase(itemDescription) = "description" And LCase(monthText) = "month" Then
-                        headerFound = True
-                    ElseIf rowNumber >= 20 Then
-                        Exit Do
-                    End If
-                ElseIf itemCode <> "" Or itemDescription <> "" Or monthText <> "" Then
-                    If itemCode = "" Then
-                        validationErrors.Add CStr(rowNumber) & "_code", "Row " & rowNumber & ": Item Code is required."
-                    ElseIf Len(itemCode) > 50 Then
-                        validationErrors.Add CStr(rowNumber) & "_code", "Row " & rowNumber & ": Item Code exceeds 50 characters."
-                    End If
-
-                    If Len(itemDescription) > 300 Then
-                        validationErrors.Add CStr(rowNumber) & "_description", "Row " & rowNumber & ": Description exceeds 300 characters."
-                    End If
-
-                    monthValue = Null
-                    If monthText <> "" Then
-                        If Not IsNumeric(monthText) Then
-                            validationErrors.Add CStr(rowNumber) & "_month", "Row " & rowNumber & ": Month must be a whole number."
-                        ElseIf CDbl(monthText) <> Fix(CDbl(monthText)) Or CDbl(monthText) < 0 Or CDbl(monthText) > 2147483647 Then
-                            validationErrors.Add CStr(rowNumber) & "_month", "Row " & rowNumber & ": Month must be a whole number from 0 to 2147483647."
-                        Else
-                            monthValue = CLng(monthText)
-                        End If
-                    End If
-
-                    If itemCode <> "" And Len(itemCode) <= 50 Then
-                        duplicateKey = UCase(itemCode)
-                        If warrantyRows.Exists(duplicateKey) Then
-                            validationErrors.Add CStr(rowNumber) & "_duplicate", "Row " & rowNumber & ": duplicate Item Code '" & itemCode & "'."
-                        Else
-                            warrantyData = Array(itemCode, itemDescription, monthValue)
-                            warrantyRows.Add duplicateKey, warrantyData
-                        End If
-                    End If
-                End If
-
-                excelRecordset.MoveNext
-            Loop
-
             If Not headerFound Then
                 uploadError = "The required headers Item Code, Description and Month were not found in the first 20 rows."
             ElseIf warrantyRows.Count = 0 Then
-                uploadError = "The workbook does not contain any warranty data rows."
+                uploadError = "The uploaded file does not contain any warranty data rows."
             ElseIf validationErrors.Count > 0 Then
                 uploadError = "Validation failed. " & Join(validationErrors.Items, " ")
             End If
         End If
-
-        If excelRecordset.State <> 0 Then excelRecordset.Close
-        Set excelRecordset = Nothing
     End If
 
     If uploadError = "" Then
@@ -510,6 +621,8 @@ currentWarrantyCount = selectid("SELECT COUNT(*) FROM tbl_warranty")
                 <tr>
                   <td colspan="2" align="left" valign="top" class="bodycopy">
                     <p>This replaces all records in <strong>tbl_warranty</strong>. The existing records remain unchanged if validation or import fails.</p>
+                    <p>Accepted formats: <strong>CSV UTF-8</strong>, <strong>.xlsx</strong> or <strong>.xls</strong>. CSV works without an Excel provider on the server.</p>
+                    <p>For the live server, open the workbook in Excel and use <strong>Save As &gt; CSV UTF-8 (Comma delimited) (*.csv)</strong> before uploading.</p>
                     <p>Expected columns: <strong>Item Code</strong>, <strong>Description</strong>, <strong>Month</strong>. The header may appear within the first 20 rows.</p>
                     <p>Current warranty records: <strong><%=WarrantyHtml(currentWarrantyCount)%></strong></p>
                     <% If warrantyMessage <> "" Then %>
@@ -518,8 +631,8 @@ currentWarrantyCount = selectid("SELECT COUNT(*) FROM tbl_warranty")
                     <form action="mis_master_warranty_upload.asp" method="post" enctype="multipart/form-data" name="warrantyUploadForm" id="warrantyUploadForm" onsubmit="return confirm('Replace all existing warranty records with this workbook?');">
                       <table border="0" cellspacing="0" cellpadding="5">
                         <tr>
-                          <td><strong>Excel workbook</strong></td>
-                          <td><input name="warranty_file" type="file" id="warranty_file" accept=".xlsx,.xls" required="required" /></td>
+                          <td><strong>Warranty file</strong></td>
+                          <td><input name="warranty_file" type="file" id="warranty_file" accept=".csv,.xlsx,.xls" required="required" /></td>
                         </tr>
                         <tr>
                           <td>&nbsp;</td>
